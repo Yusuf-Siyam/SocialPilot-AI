@@ -1,8 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
 
-/* ==============================
+/* =====================================
    GLOBAL SETTINGS
-============================== */
+===================================== */
 
 :root {
   font-family: "DM Sans", sans-serif;
@@ -10,6 +10,8 @@
   background: #f5f7fb;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -26,7 +28,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -34,13 +37,28 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 #root {
   min-height: 100vh;
 }
 
-/* ==============================
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* =====================================
    MAIN LAYOUT
-============================== */
+===================================== */
 
 .shell {
   display: flex;
@@ -48,9 +66,17 @@ button {
   width: 100%;
 }
 
-/* ==============================
+.main {
+  max-width: 1500px;
+  width: 100%;
+  min-width: 0;
+  padding: 35px 42px;
+  margin: 0 auto;
+}
+
+/* =====================================
    SIDEBAR
-============================== */
+===================================== */
 
 .sidebar {
   width: 245px;
@@ -106,7 +132,6 @@ button {
   border-radius: 9px;
   color: #aeb7c6;
   font-size: 13px;
-  text-decoration: none;
   cursor: pointer;
   transition: 0.2s;
 }
@@ -146,17 +171,9 @@ button {
   margin-right: 8px;
 }
 
-/* ==============================
-   MAIN CONTENT
-============================== */
-
-.main {
-  max-width: 1500px;
-  width: 100%;
-  padding: 35px 42px;
-  margin: 0 auto;
-  min-width: 0;
-}
+/* =====================================
+   HEADER
+===================================== */
 
 header {
   display: flex;
@@ -171,13 +188,6 @@ header {
   letter-spacing: 1.3px;
   color: #8a8fa2;
   margin: 0 0 8px;
-}
-
-h1,
-h2,
-h3,
-p {
-  margin-top: 0;
 }
 
 h1 {
@@ -217,9 +227,9 @@ h3 {
   font-weight: 700;
 }
 
-/* ==============================
+/* =====================================
    STATISTICS CARDS
-============================== */
+===================================== */
 
 .stats {
   display: grid;
@@ -264,9 +274,9 @@ h3 {
   font-style: normal;
 }
 
-/* ==============================
+/* =====================================
    WORKSPACE GRID
-============================== */
+===================================== */
 
 .workspace {
   display: grid;
@@ -281,14 +291,20 @@ h3 {
   padding: 22px;
 }
 
-/* ==============================
+.rightcol {
+  display: grid;
+  gap: 15px;
+}
+
+/* =====================================
    PANEL HEADER
-============================== */
+===================================== */
 
 .panel-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 
 .step {
@@ -299,11 +315,12 @@ h3 {
   padding: 7px 9px;
   border-radius: 20px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-/* ==============================
+/* =====================================
    TABS
-============================== */
+===================================== */
 
 .tabs {
   display: flex;
@@ -323,7 +340,11 @@ h3 {
   font:
     600 12px "DM Sans",
     sans-serif;
-  cursor: pointer;
+  transition: 0.2s;
+}
+
+.tabs button:hover {
+  color: #685be0;
 }
 
 .tabs button.selected {
@@ -331,9 +352,13 @@ h3 {
   border-bottom: 2px solid #7465e8;
 }
 
-/* ==============================
+.tabs button:disabled {
+  opacity: 0.5;
+}
+
+/* =====================================
    VIDEO UPLOAD
-============================== */
+===================================== */
 
 .dropzone {
   border: 1.5px dashed #d6d8e6;
@@ -371,6 +396,7 @@ h3 {
 
 .dropzone b {
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .dropzone p {
@@ -379,9 +405,9 @@ h3 {
   margin: 5px 0 11px;
 }
 
-/* ==============================
+/* =====================================
    BUTTONS
-============================== */
+===================================== */
 
 .primary {
   display: inline-flex;
@@ -396,7 +422,6 @@ h3 {
   font:
     600 12px "DM Sans",
     sans-serif;
-  cursor: pointer;
   transition: 0.2s;
 }
 
@@ -408,6 +433,7 @@ h3 {
 .primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
 }
 
 .primary.light {
@@ -426,9 +452,9 @@ h3 {
   margin-top: 2px;
 }
 
-/* ==============================
+/* =====================================
    VIDEO LINK INPUT
-============================== */
+===================================== */
 
 .linkbox {
   padding: 17px;
@@ -455,6 +481,11 @@ label {
   color: #8b8fa0;
 }
 
+.url-input:focus-within {
+  border-color: #8a7fea;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.08);
+}
+
 .url-input input {
   border: 0;
   outline: 0;
@@ -462,6 +493,7 @@ label {
   padding: 11px 0;
   font-size: 12px;
   background: transparent;
+  color: #202431;
 }
 
 .hint {
@@ -471,14 +503,15 @@ label {
   line-height: 1.5;
 }
 
-/* ==============================
+/* =====================================
    SECTION HEADINGS
-============================== */
+===================================== */
 
 .section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   margin: 23px 0 11px;
 }
 
@@ -492,15 +525,16 @@ label {
 .section-title span {
   font-size: 10px;
   color: #9a9eab;
+  text-align: right;
 }
 
-/* ==============================
+/* =====================================
    PLATFORM SELECTION
-============================== */
+===================================== */
 
 .platforms {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -514,18 +548,21 @@ label {
   gap: 8px;
   text-align: left;
   position: relative;
-  cursor: pointer;
   min-width: 0;
   transition: 0.2s;
 }
 
-.platform:hover {
+.platform:hover:not(:disabled) {
   border-color: #aaa0f0;
 }
 
 .platform.chosen {
   border-color: #887ce9;
   background: #faf9ff;
+}
+
+.platform:disabled {
+  opacity: 0.6;
 }
 
 .platform span:not(.brand-mark) {
@@ -535,7 +572,8 @@ label {
 .platform b {
   display: block;
   font-size: 10px;
-  white-space: nowrap;
+  white-space: normal;
+  padding-right: 8px;
 }
 
 .platform small {
@@ -555,7 +593,9 @@ label {
   font-size: 11px;
 }
 
-/* Social brand icons */
+/* =====================================
+   SOCIAL BRAND ICONS
+===================================== */
 
 .brand-mark {
   width: 19px;
@@ -583,9 +623,9 @@ label {
   font-size: 15px;
 }
 
-/* ==============================
+/* =====================================
    INPUT FIELDS
-============================== */
+===================================== */
 
 .field {
   width: 100%;
@@ -599,22 +639,149 @@ label {
   margin-bottom: 13px;
   color: #202431;
   background: white;
+  transition: 0.2s;
 }
 
-.field:focus,
-.url-input:focus-within {
+.field:focus {
   border-color: #8a7fea;
   box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.08);
 }
 
-.textarea {
-  min-height: 75px;
-  resize: vertical;
+.field:disabled {
+  background: #f5f6fa;
+  cursor: not-allowed;
 }
 
-/* ==============================
+.textarea {
+  min-height: 85px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* =====================================
+   AI CONTROLS
+===================================== */
+
+.ai-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+  margin: 4px 0 14px;
+}
+
+.language-control {
+  min-width: 0;
+}
+
+.language-control label {
+  margin-bottom: 7px;
+}
+
+.language-control .field {
+  margin-bottom: 0;
+}
+
+.ai-button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 42px;
+  font-size: 12px;
+}
+
+/* =====================================
+   AI STATUS
+===================================== */
+
+.ai-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 9px;
+  padding: 11px 12px;
+  margin: 12px 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ai-status.ready {
+  background: #effaf4;
+  border: 1px solid #d5efdf;
+  color: #188653;
+}
+
+.ai-status.not-ready {
+  background: #fff8eb;
+  border: 1px solid #f4e6c6;
+  color: #a57419;
+}
+
+.ai-status > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ai-status button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  padding: 4px;
+}
+
+.ai-status button:disabled {
+  opacity: 0.5;
+}
+
+/* =====================================
+   AI GENERATED RESULT
+===================================== */
+
+.ai-result {
+  border: 1px solid #e4e0ff;
+  background: #faf9ff;
+  border-radius: 10px;
+  padding: 15px;
+  margin: 13px 0;
+  font-size: 11px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.ai-result > b {
+  display: block;
+  font:
+    700 13px "Manrope",
+    sans-serif;
+  color: #5f50c9;
+  margin-bottom: 10px;
+}
+
+.ai-result p {
+  color: #60677a;
+  margin: 7px 0;
+}
+
+.ai-result strong {
+  color: #33384a;
+}
+
+.ai-result small {
+  display: block;
+  color: #9296a5;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* =====================================
    STATUS MESSAGE
-============================== */
+===================================== */
 
 .message {
   display: flex;
@@ -627,20 +794,17 @@ label {
   font-size: 11px;
   line-height: 1.5;
   margin-top: 12px;
+  overflow-wrap: anywhere;
 }
 
-/* ==============================
-   PUBLISH PREVIEW
-============================== */
-
-.preview {
-  border: 1px solid #d9eee3;
-  background: #f7fcf9;
-  border-radius: 9px;
-  padding: 13px;
-  margin-top: 12px;
-  font-size: 12px;
+.message svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
+
+/* =====================================
+   SUCCESS MESSAGE
+===================================== */
 
 .success {
   display: flex;
@@ -649,31 +813,53 @@ label {
   color: #188653;
   font-weight: 700;
   margin-bottom: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.dropzone > .success {
+  margin-top: 9px;
+  margin-bottom: 0;
+}
+
+/* =====================================
+   PUBLISH PREVIEW
+===================================== */
+
+.preview {
+  border: 1px solid #d9eee3;
+  background: #f7fcf9;
+  border-radius: 9px;
+  padding: 13px;
+  margin-top: 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.preview > b {
+  display: block;
+  color: #202431;
+  margin-bottom: 7px;
 }
 
 .preview p {
   color: #6f7785;
   margin: 6px 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 .preview small {
   color: #8a928e;
 }
 
-/* ==============================
-   RIGHT SIDEBAR
-============================== */
-
-.rightcol {
-  display: grid;
-  gap: 15px;
-}
+/* =====================================
+   RIGHT SIDEBAR / ACCOUNT SETUP
+===================================== */
 
 .checklist h2 {
   margin-bottom: 17px;
 }
-
-/* Account rows */
 
 .account {
   display: flex;
@@ -698,15 +884,15 @@ label {
   font-size: 9px;
   color: #969baa;
   margin-top: 4px;
+  line-height: 1.4;
 }
-
-/* Account badges */
 
 .pill {
   font-size: 9px;
   padding: 5px 7px;
   border-radius: 20px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .warn {
@@ -719,9 +905,9 @@ label {
   color: #858b99;
 }
 
-/* ==============================
+/* =====================================
    AI ASSISTANT CARD
-============================== */
+===================================== */
 
 .tips {
   position: relative;
@@ -761,9 +947,9 @@ label {
   line-height: 2;
 }
 
-/* ==============================
+/* =====================================
    SECURITY NOTE
-============================== */
+===================================== */
 
 .security {
   display: flex;
@@ -779,9 +965,9 @@ label {
   flex-shrink: 0;
 }
 
-/* ==============================
+/* =====================================
    FOOTER
-============================== */
+===================================== */
 
 footer {
   text-align: center;
@@ -790,9 +976,9 @@ footer {
   margin: 25px 0 5px;
 }
 
-/* ==============================
+/* =====================================
    LOADING ANIMATION
-============================== */
+===================================== */
 
 .spin {
   animation: spin 1s linear infinite;
@@ -804,25 +990,25 @@ footer {
   }
 }
 
-/* ==============================
+/* =====================================
    RESPONSIVE DESIGN
-============================== */
+===================================== */
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .sidebar {
     width: 205px;
   }
 
   .main {
-    padding: 25px 22px;
+    padding: 28px 22px;
   }
 
   .workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .rightcol {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .security {
@@ -839,6 +1025,14 @@ footer {
     padding: 22px 14px;
   }
 
+  header {
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 23px;
+  }
+
   .stats {
     grid-template-columns: 1fr;
   }
@@ -851,11 +1045,54 @@ footer {
     grid-template-columns: 1fr;
   }
 
-  h1 {
-    font-size: 23px;
+  .composer {
+    padding: 16px;
+  }
+
+  .checklist,
+  .tips {
+    padding: 18px;
+  }
+
+  .ai-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-button {
+    grid-column: auto;
+  }
+
+  .panel-head {
+    align-items: flex-start;
+  }
+
+  .step {
+    font-size: 8px;
+  }
+
+  .section-title {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 400px) {
+  .main {
+    padding: 18px 10px;
   }
 
   .composer {
-    padding: 16px;
+    padding: 13px;
+  }
+
+  .tabs {
+    gap: 14px;
+  }
+
+  .tabs button {
+    font-size: 11px;
+  }
+
+  .ai-status {
+    align-items: flex-start;
   }
 }

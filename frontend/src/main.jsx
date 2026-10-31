@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+
 import {
   UploadCloud,
   Link2,
@@ -12,83 +13,234 @@ import {
   Sparkles,
   Send,
   LoaderCircle,
+  WandSparkles,
+  RefreshCw,
 } from "lucide-react";
+
 import "./style.css";
 
 const API = "http://127.0.0.1:8000";
 
-// Social Media Brand Icons
-function BrandIcon({ platform }) {
-  const icons = {
-    facebook: <span className="brand-mark fb">f</span>,
-    instagram: <span className="brand-mark ig">◎</span>,
-    youtube: <span className="brand-mark yt">▶</span>,
-  };
+const PLATFORMS = [
+  {
+    id: "facebook",
+    name: "Facebook Page",
+    description: "Page connection pending",
+    icon: "f",
+    className: "fb",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    description: "Professional account required",
+    icon: "◎",
+    className: "ig",
+  },
+  {
+    id: "youtube",
+    name: "YouTube",
+    description: "Create a channel first",
+    icon: "▶",
+    className: "yt",
+  },
+];
 
-  return icons[platform] || null;
+const VIDEO_EXTENSIONS = [".mp4", ".mov", ".m4v", ".webm"];
+
+// ======================================================
+// HELPER FUNCTIONS
+// ======================================================
+
+async function apiRequest(endpoint, options = {}) {
+  const response = await fetch(`${API}${endpoint}`, options);
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Invalid response received from backend.");
+  }
+
+  if (!response.ok) {
+    const detail = data?.detail;
+
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : "Something went wrong. Please try again.",
+    );
+  }
+
+  return data;
 }
 
+// ======================================================
+// BRAND ICON
+// ======================================================
+
+function BrandIcon({ platform }) {
+  const item = PLATFORMS.find((p) => p.id === platform);
+
+  if (!item) return null;
+
+  return <span className={`brand-mark ${item.className}`}>{item.icon}</span>;
+}
+
+// ======================================================
+// MAIN APPLICATION
+// ======================================================
+
 function App() {
+  // Content input
   const [mode, setMode] = useState("file");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState(null);
+
+  // Post details
   const [title, setTitle] = useState("");
+  const [topic, setTopic] = useState("");
   const [caption, setCaption] = useState("");
+
+  // AI settings
+  const [language, setLanguage] = useState("both");
+  const [tone, setTone] = useState("engaging");
+
+  // Social platforms
   const [platforms, setPlatforms] = useState(["facebook"]);
+
+  // Application states
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Uploaded video
   const [asset, setAsset] = useState("");
   const [source, setSource] = useState("");
+
+  // Preview
   const [preview, setPreview] = useState(null);
 
-  const toggle = (platform) => {
-    setPlatforms((old) =>
-      old.includes(platform)
-        ? old.filter((p) => p !== platform)
-        : [...old, platform],
-    );
-  };
+  // AI status
+  const [aiStatus, setAiStatus] = useState({
+    loading: true,
+    available: false,
+    installed: false,
+    model: "qwen2.5:3b",
+    message: "Checking local AI...",
+  });
 
-  // Validate social media link
-  async function importLink() {
-    if (!url.trim()) {
-      setMessage("Please enter a video URL.");
-      return;
-    }
+  // AI generated result
+  const [aiResult, setAiResult] = useState(null);
 
-    setBusy(true);
-    setMessage("Checking link...");
-    setPreview(null);
+  // ====================================================
+  // CHECK LOCAL AI ON PAGE LOAD
+  // ====================================================
+
+  useEffect(() => {
+    checkAIStatus();
+  }, []);
+
+  // ====================================================
+  // OLLAMA STATUS
+  // ====================================================
+
+  async function checkAIStatus() {
+    setAiStatus((old) => ({
+      ...old,
+      loading: true,
+    }));
 
     try {
-      const response = await fetch(`${API}/videos/import-link`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
+      const data = await apiRequest("/ai/status");
+
+      setAiStatus({
+        loading: false,
+        available: Boolean(data.available),
+        installed: Boolean(data.installed),
+        model: data.model || "qwen2.5:3b",
+        message: data.message || "AI status checked.",
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Could not validate link");
-      }
-
-      setSource(data.source);
-      setAsset("");
-
-      setMessage(
-        `${data.source.toUpperCase()} link recognized. ${data.message}`,
-      );
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
-    } finally {
-      setBusy(false);
+      setAiStatus({
+        loading: false,
+        available: false,
+        installed: false,
+        model: "qwen2.5:3b",
+        message: error.message || "Cannot reach backend.",
+      });
     }
   }
 
-  // Upload video
+  // ====================================================
+  // TOGGLE SOCIAL PLATFORMS
+  // ====================================================
+
+  function togglePlatform(platform) {
+    setPlatforms((old) =>
+      old.includes(platform)
+        ? old.filter((item) => item !== platform)
+        : [...old, platform],
+    );
+
+    setPreview(null);
+  }
+
+  // ====================================================
+  // CHANGE CONTENT MODE
+  // ====================================================
+
+  function changeMode(nextMode) {
+    setMode(nextMode);
+    setMessage("");
+    setPreview(null);
+  }
+
+  // ====================================================
+  // VALIDATE VIDEO FILE
+  // ====================================================
+
+  function handleFileChange(event) {
+    const selectedFile = event.target.files?.[0] || null;
+
+    if (!selectedFile) {
+      setFile(null);
+      return;
+    }
+
+    const extension = selectedFile.name
+      .substring(selectedFile.name.lastIndexOf("."))
+      .toLowerCase();
+
+    if (!VIDEO_EXTENSIONS.includes(extension)) {
+      setFile(null);
+      setMessage("Please select MP4, MOV, M4V, or WEBM video.");
+
+      event.target.value = "";
+      return;
+    }
+
+    const maxSize = 500 * 1024 * 1024;
+
+    if (selectedFile.size > maxSize) {
+      setFile(null);
+      setMessage("Maximum video size is 500 MB.");
+
+      event.target.value = "";
+      return;
+    }
+
+    setFile(selectedFile);
+    setAsset("");
+    setSource("");
+    setPreview(null);
+    setAiResult(null);
+    setMessage("");
+  }
+
+  // ====================================================
+  // UPLOAD VIDEO
+  // ====================================================
+
   async function uploadFile() {
     if (!file) {
       setMessage("Choose a video file first.");
@@ -101,83 +253,216 @@ function App() {
 
     try {
       const body = new FormData();
+
       body.append("file", file);
 
-      const response = await fetch(`${API}/videos/upload`, {
+      const data = await apiRequest("/videos/upload", {
         method: "POST",
         body,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Upload failed");
-      }
-
       setAsset(data.asset_id);
-      setUrl("");
-      setSource("");
 
-      setTitle(title || file.name.replace(/\.[^.]+$/, ""));
+      setTitle((old) => old || file.name.replace(/\.[^.]+$/, ""));
 
-      setMessage(`Video stored locally: ${data.original_filename}`);
+      setMessage(`Video uploaded successfully: ${data.original_filename}`);
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(`Upload Error: ${error.message}`);
     } finally {
       setBusy(false);
     }
   }
 
-  // Generate publishing preview
-  async function makePreview() {
-    const filename =
-      asset || (source && url ? `${source}-link-pending-import` : "");
+  // ====================================================
+  // IMPORT / VALIDATE SOCIAL MEDIA LINK
+  // ====================================================
 
-    if (!filename) {
-      setMessage("Upload a video file or validate a video link first.");
-      return;
-    }
-
-    if (!platforms.length) {
-      setMessage("Select at least one platform.");
+  async function importLink() {
+    if (!url.trim()) {
+      setMessage("Please enter a video URL.");
       return;
     }
 
     setBusy(true);
+    setMessage("Validating social media link...");
+    setPreview(null);
 
     try {
-      const response = await fetch(`${API}/publish/preview`, {
+      const data = await apiRequest("/videos/import-link", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          filename,
-          title,
-          caption,
-          platforms,
+          url: url.trim(),
         }),
       });
 
-      const data = await response.json();
+      setSource(data.source);
 
-      if (!response.ok) {
-        throw new Error(data.detail || "Preview failed");
-      }
+      // A recognized link is NOT a downloaded video.
+      setAsset("");
 
-      setPreview(data);
-
-      setMessage("Publishing preview created. Nothing has been published yet.");
+      setMessage(
+        `${data.source.toUpperCase()} link recognized. ${data.message}`,
+      );
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setSource("");
+      setMessage(`Link Error: ${error.message}`);
     } finally {
       setBusy(false);
     }
   }
 
+  // ====================================================
+  // GENERATE AI CAPTION
+  // ====================================================
+
+  async function generateCaption() {
+    const context = topic.trim() || caption.trim();
+
+    if (context.length < 3) {
+      setMessage(
+        "Describe what happens in the video so Local AI can generate an accurate caption.",
+      );
+      return;
+    }
+
+    if (platforms.length === 0) {
+      setMessage("Select at least one publishing platform.");
+      return;
+    }
+
+    if (!aiStatus.available || !aiStatus.installed) {
+      setMessage(
+        "Local AI is not ready. Start Ollama and install the selected model.",
+      );
+
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Local AI is generating your captions...");
+    setAiResult(null);
+
+    try {
+      const data = await apiRequest("/ai/generate-caption", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          topic: context,
+          title,
+          platforms,
+          language,
+          tone,
+        }),
+      });
+
+      setAiResult(data);
+
+      if (data.suggested_title) {
+        setTitle(data.suggested_title);
+      }
+
+      let selectedCaption = "";
+
+      if (language === "bangla") {
+        selectedCaption = data.bangla_caption || "";
+      } else if (language === "english") {
+        selectedCaption = data.english_caption || "";
+      } else {
+        selectedCaption = [data.bangla_caption, data.english_caption]
+          .filter(Boolean)
+          .join("\n\n");
+      }
+
+      const finalCaption = [selectedCaption, (data.hashtags || []).join(" ")]
+        .filter(Boolean)
+        .join("\n\n");
+
+      setCaption(finalCaption);
+
+      setMessage(
+        `Caption generated successfully using ${data.model}. Review before publishing.`,
+      );
+    } catch (error) {
+      setMessage(`AI Error: ${error.message}`);
+
+      // Refresh AI connection status after an error.
+      await checkAIStatus();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ====================================================
+  // GENERATE PUBLISHING PREVIEW
+  // ====================================================
+
+  async function makePreview() {
+    if (!asset && !source) {
+      setMessage("Upload a video file or validate a social media link first.");
+      return;
+    }
+
+    if (!platforms.length) {
+      setMessage("Select at least one publishing platform.");
+      return;
+    }
+
+    if (!title.trim()) {
+      setMessage("Please enter a video title.");
+      return;
+    }
+
+    if (!asset && source) {
+      setMessage(
+        "The link is recognized, but the video has not been imported. Upload an authorized video file before creating a publishing preview.",
+      );
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Creating publishing preview...");
+
+    try {
+      const data = await apiRequest("/publish/preview", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          filename: asset,
+          title: title.trim(),
+          caption,
+          platforms,
+        }),
+      });
+
+      setPreview(data);
+
+      setMessage("Publishing preview created. Nothing has been published yet.");
+    } catch (error) {
+      setMessage(`Preview Error: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ====================================================
+  // APPLICATION UI
+  // ====================================================
+
   return (
     <div className="shell">
-      {/* Sidebar */}
+      {/* SIDEBAR */}
+
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon">
@@ -219,12 +504,17 @@ function App() {
         </div>
       </aside>
 
-      {/* Main Dashboard */}
+      {/* MAIN CONTENT */}
+
       <main className="main">
+        {/* HEADER */}
+
         <header>
           <div>
             <p className="eyebrow">WORKSPACE / OVERVIEW</p>
+
             <h1>Good to see you 👋</h1>
+
             <p className="sub">
               Prepare one video for all your social channels.
             </p>
@@ -233,78 +523,85 @@ function App() {
           <div className="avatar">SP</div>
         </header>
 
-        {/* Statistics */}
+        {/* STATISTICS */}
+
         <section className="stats">
           <div className="stat">
             <span>Connected platforms</span>
+
             <strong>
               1 <small>/ 3</small>
             </strong>
+
             <em>Facebook Page ready for setup</em>
           </div>
 
           <div className="stat">
             <span>Videos uploaded</span>
-            <strong>0</strong>
+
+            <strong>{asset ? "1" : "0"}</strong>
+
             <em>Local development</em>
           </div>
 
           <div className="stat">
             <span>Published posts</span>
+
             <strong>0</strong>
+
             <em>No live publishing yet</em>
           </div>
         </section>
 
+        {/* WORKSPACE */}
+
         <section className="workspace">
-          {/* Video Composer */}
+          {/* LEFT PANEL */}
+
           <div className="panel composer">
             <div className="panel-head">
               <div>
                 <p className="eyebrow">NEW CONTENT</p>
+
                 <h2>Create a post</h2>
               </div>
 
               <span className="step">STEP 1 OF 3</span>
             </div>
 
-            {/* Input Tabs */}
+            {/* UPLOAD / LINK TABS */}
+
             <div className="tabs">
               <button
+                type="button"
                 className={mode === "file" ? "selected" : ""}
-                onClick={() => {
-                  setMode("file");
-                  setMessage("");
-                }}
+                onClick={() => changeMode("file")}
+                disabled={busy}
               >
                 <UploadCloud size={17} />
                 Upload video
               </button>
 
               <button
+                type="button"
                 className={mode === "link" ? "selected" : ""}
-                onClick={() => {
-                  setMode("link");
-                  setMessage("");
-                }}
+                onClick={() => changeMode("link")}
+                disabled={busy}
               >
                 <Link2 size={17} />
                 Paste link
               </button>
             </div>
 
-            {/* Video Upload */}
+            {/* VIDEO UPLOAD */}
+
             {mode === "file" ? (
               <div className="dropzone">
                 <input
                   type="file"
-                  accept="video/mp4,video/quicktime,video/webm"
-                  onChange={(e) => {
-                    setFile(e.target.files?.[0] || null);
-                    setAsset("");
-                    setUrl("");
-                    setSource("");
-                  }}
+                  accept=".mp4,.mov,.m4v,.webm,video/mp4,video/quicktime,video/webm"
+                  onChange={handleFileChange}
+                  disabled={busy}
                 />
 
                 <div className="upload-icon">
@@ -316,6 +613,7 @@ function App() {
                 <p>MP4, MOV, M4V or WEBM · Max 500 MB</p>
 
                 <button
+                  type="button"
                   className="primary light"
                   disabled={!file || busy}
                   onClick={uploadFile}
@@ -327,9 +625,17 @@ function App() {
                   )}
                   Upload to workspace
                 </button>
+
+                {asset && (
+                  <p className="success">
+                    <CheckCircle2 size={15} />
+                    Video uploaded successfully
+                  </p>
+                )}
               </div>
             ) : (
-              /* Video Link Input */
+              /* SOCIAL MEDIA LINK */
+
               <div className="linkbox">
                 <label>Video URL</label>
 
@@ -337,17 +643,20 @@ function App() {
                   <Link2 size={17} />
 
                   <input
+                    type="url"
                     value={url}
                     onChange={(e) => {
                       setUrl(e.target.value);
-                      setAsset("");
                       setSource("");
+                      setPreview(null);
                     }}
                     placeholder="Paste YouTube, Instagram or Facebook URL"
+                    disabled={busy}
                   />
                 </div>
 
                 <button
+                  type="button"
                   className="primary light"
                   disabled={!url.trim() || busy}
                   onClick={importLink}
@@ -361,110 +670,274 @@ function App() {
                 </button>
 
                 <p className="hint">
-                  We validate the source first. Direct media import depends on
-                  platform permissions and your rights to reuse the video.
+                  We validate the source first. Direct media import requires
+                  platform permissions and authorization.
                 </p>
+
+                {source && (
+                  <p className="success">
+                    <CheckCircle2 size={15} />
+                    {source.toUpperCase()} link recognized. Video import is
+                    still pending.
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Platform Selection */}
+            {/* SOCIAL PLATFORMS */}
+
             <div className="section-title">
               <h3>Publishing platforms</h3>
+
               <span>Choose destinations</span>
             </div>
 
             <div className="platforms">
-              <button
-                className={`platform ${
-                  platforms.includes("facebook") ? "chosen" : ""
-                }`}
-                onClick={() => toggle("facebook")}
-              >
-                <BrandIcon platform="facebook" />
+              {PLATFORMS.map((platform) => (
+                <button
+                  type="button"
+                  key={platform.id}
+                  className={`platform ${
+                    platforms.includes(platform.id) ? "chosen" : ""
+                  }`}
+                  onClick={() => togglePlatform(platform.id)}
+                  disabled={busy}
+                >
+                  <BrandIcon platform={platform.id} />
 
-                <span>
-                  <b>Facebook Page</b>
-                  <small>Page connection pending</small>
-                </span>
+                  <span>
+                    <b>{platform.name}</b>
 
-                <i>{platforms.includes("facebook") ? "✓" : ""}</i>
-              </button>
+                    <small>{platform.description}</small>
+                  </span>
 
-              <button
-                className={`platform ${
-                  platforms.includes("instagram") ? "chosen" : ""
-                }`}
-                onClick={() => toggle("instagram")}
-              >
-                <BrandIcon platform="instagram" />
-
-                <span>
-                  <b>Instagram</b>
-                  <small>Switch Personal to Professional</small>
-                </span>
-
-                <i>{platforms.includes("instagram") ? "✓" : ""}</i>
-              </button>
-
-              <button
-                className={`platform ${
-                  platforms.includes("youtube") ? "chosen" : ""
-                }`}
-                onClick={() => toggle("youtube")}
-              >
-                <BrandIcon platform="youtube" />
-
-                <span>
-                  <b>YouTube</b>
-                  <small>Create a channel first</small>
-                </span>
-
-                <i>{platforms.includes("youtube") ? "✓" : ""}</i>
-              </button>
+                  <i>{platforms.includes(platform.id) ? "✓" : ""}</i>
+                </button>
+              ))}
             </div>
 
-            {/* Post Details */}
+            {/* POST DETAILS */}
+
             <div className="section-title">
               <h3>Post details</h3>
-              <span>AI assistance coming next</span>
+
+              <span>AI caption assistant</span>
             </div>
 
-            <label>Video title</label>
+            <label htmlFor="video-title">Video title</label>
 
             <input
+              id="video-title"
               className="field"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setPreview(null);
+              }}
               placeholder="Enter a title"
+              maxLength={200}
             />
 
-            <label>Caption / description</label>
+            <label htmlFor="video-topic">What is this video about?</label>
 
             <textarea
+              id="video-topic"
               className="field textarea"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Write a caption (AI generator will be added in the next phase)..."
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Briefly describe the video. Example: A short cooking video showing how to make chicken biryani..."
+              maxLength={2000}
             />
 
+            <label htmlFor="video-caption">Caption / description</label>
+
+            <textarea
+              id="video-caption"
+              className="field textarea"
+              value={caption}
+              onChange={(e) => {
+                setCaption(e.target.value);
+                setPreview(null);
+              }}
+              placeholder="Your AI-generated Bangla and English captions will appear here. You can edit them."
+              maxLength={5000}
+            />
+
+            {/* AI CONTROLS */}
+
+            <div className="ai-controls">
+              <div className="language-control">
+                <label htmlFor="caption-language">Caption language</label>
+
+                <select
+                  id="caption-language"
+                  className="field"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  disabled={busy}
+                >
+                  <option value="both">Bangla + English</option>
+
+                  <option value="bangla">Bangla only</option>
+
+                  <option value="english">English only</option>
+                </select>
+              </div>
+
+              <div className="language-control">
+                <label htmlFor="caption-tone">Caption tone</label>
+
+                <select
+                  id="caption-tone"
+                  className="field"
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  disabled={busy}
+                >
+                  <option value="engaging">Engaging</option>
+
+                  <option value="professional">Professional</option>
+
+                  <option value="educational">Educational</option>
+
+                  <option value="funny">Funny</option>
+
+                  <option value="informative">Informative</option>
+
+                  <option value="promotional">Promotional</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                className="primary ai-button"
+                onClick={generateCaption}
+                disabled={
+                  busy ||
+                  aiStatus.loading ||
+                  !aiStatus.available ||
+                  !aiStatus.installed
+                }
+              >
+                {busy ? (
+                  <LoaderCircle className="spin" size={16} />
+                ) : (
+                  <WandSparkles size={16} />
+                )}
+                Generate with Local AI
+              </button>
+            </div>
+
+            {/* AI STATUS */}
+
+            <div
+              className={`ai-status ${
+                aiStatus.available && aiStatus.installed ? "ready" : "not-ready"
+              }`}
+            >
+              <span>
+                {aiStatus.loading
+                  ? "Checking Local AI..."
+                  : aiStatus.available && aiStatus.installed
+                    ? `Local AI ready · ${aiStatus.model}`
+                    : aiStatus.message}
+              </span>
+
+              <button
+                type="button"
+                onClick={checkAIStatus}
+                disabled={aiStatus.loading || busy}
+              >
+                {aiStatus.loading ? (
+                  <LoaderCircle className="spin" size={15} />
+                ) : (
+                  <RefreshCw size={15} />
+                )}
+                Refresh
+              </button>
+            </div>
+
+            {/* AI RESULT */}
+
+            {aiResult && (
+              <div className="ai-result">
+                <b>AI suggestions</b>
+
+                <p>
+                  <strong>Suggested title:</strong>{" "}
+                  {aiResult.suggested_title || "Not available"}
+                </p>
+
+                {aiResult.bangla_caption && (
+                  <p>
+                    <strong>Bangla:</strong> {aiResult.bangla_caption}
+                  </p>
+                )}
+
+                {aiResult.english_caption && (
+                  <p>
+                    <strong>English:</strong> {aiResult.english_caption}
+                  </p>
+                )}
+
+                <p>
+                  <strong>Hashtags:</strong>{" "}
+                  {(aiResult.hashtags || []).join(" ")}
+                </p>
+
+                {aiResult.platform_notes && (
+                  <div>
+                    <strong>Platform suggestions:</strong>
+
+                    {platforms.map((platform) => {
+                      const note = aiResult.platform_notes[platform];
+
+                      if (!note) return null;
+
+                      return (
+                        <p key={platform}>
+                          <strong>{platform.toUpperCase()}:</strong> {note}
+                        </p>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <small>
+                  Model: {aiResult.model}. Review all generated content before
+                  publishing.
+                </small>
+              </div>
+            )}
+
+            {/* PUBLISHING PREVIEW */}
+
             <button
+              type="button"
               className="primary full"
               onClick={makePreview}
               disabled={busy}
             >
-              <Send size={16} />
+              {busy ? (
+                <LoaderCircle className="spin" size={16} />
+              ) : (
+                <Send size={16} />
+              )}
               Generate publishing preview
             </button>
 
-            {/* Status Message */}
+            {/* MESSAGE */}
+
             {message && (
               <div className="message">
                 <AlertCircle size={17} />
+
                 <span>{message}</span>
               </div>
             )}
 
-            {/* Preview */}
+            {/* PREVIEW RESULT */}
+
             {preview && (
               <div className="preview">
                 <div className="success">
@@ -477,18 +950,20 @@ function App() {
                 <p>{preview.caption || "No caption provided."}</p>
 
                 <small>
-                  Selected: {preview.platforms.join(", ")}
-                  {" · "}
-                  Published: No
+                  Selected: {preview.platforms.join(", ")} · Published: No
                 </small>
               </div>
             )}
           </div>
 
-          {/* Right Sidebar */}
+          {/* RIGHT PANEL */}
+
           <div className="rightcol">
+            {/* ACCOUNT SETUP */}
+
             <div className="panel checklist">
               <p className="eyebrow">ACCOUNT SETUP</p>
+
               <h2>Connect your channels</h2>
 
               <div className="account">
@@ -496,6 +971,7 @@ function App() {
 
                 <div>
                   <b>Facebook Page</b>
+
                   <small>Page exists · API authorization needed</small>
                 </div>
 
@@ -507,7 +983,8 @@ function App() {
 
                 <div>
                   <b>Instagram</b>
-                  <small>Personal account · switch to Professional</small>
+
+                  <small>Switch Personal to Professional</small>
                 </div>
 
                 <span className="pill warn">Action</span>
@@ -518,6 +995,7 @@ function App() {
 
                 <div>
                   <b>YouTube</b>
+
                   <small>Channel not created yet</small>
                 </div>
 
@@ -525,25 +1003,34 @@ function App() {
               </div>
             </div>
 
-            {/* AI Assistant */}
+            {/* AI INFORMATION */}
+
             <div className="panel tips">
               <div className="tip-icon">
                 <Sparkles size={19} />
               </div>
 
-              <h3>Next up: AI assistant</h3>
+              <h3>Local AI assistant</h3>
 
               <p>
-                We’ll add automatic captions, hashtags, title suggestions and
-                platform-specific formatting after the upload flow is tested.
+                Generate Bangla and English captions and hashtags on your own
+                computer using Ollama. No paid AI API is used.
               </p>
 
               <ul>
-                <li>Caption generation</li>
+                <li>AI caption generation</li>
+
+                <li>Bangla and English support</li>
+
                 <li>Hashtag suggestions</li>
+
+                <li>Platform-specific suggestions</li>
+
                 <li>Approval before publishing</li>
               </ul>
             </div>
+
+            {/* SECURITY */}
 
             <div className="security">
               <CheckCircle2 size={17} />
@@ -556,10 +1043,22 @@ function App() {
           </div>
         </section>
 
-        <footer>SocialPilot AI · MVP v0.2 · Local development build</footer>
+        {/* FOOTER */}
+
+        <footer>
+          SocialPilot AI · MVP v0.3.1 · Local AI caption assistant
+        </footer>
       </main>
     </div>
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+// ======================================================
+// RENDER APPLICATION
+// ======================================================
+
+createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
